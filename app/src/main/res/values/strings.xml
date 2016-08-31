@@ -2,4 +2,7 @@
     <string name="app_name">Shark</string>
     <string name="action_settings">Settings</string>
     <string name="section_format">Hello World from section: %1$d</string>
+
+    <string name="title_activity_pair">PairActivity</string>
+    <string name="action_pair">Pair</string>
 </resources>
