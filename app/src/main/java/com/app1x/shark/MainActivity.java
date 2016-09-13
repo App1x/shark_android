@@ -1,7 +1,15 @@
 package com.app1x.shark;
 
+import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.Uri;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.util.Pair;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -11,15 +19,21 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
   
 import android.widget.TextView;
 
-public class MainActivity extends AppCompatActivity {
+import java.util.ArrayList;
+import java.util.List;
+
+public class MainActivity extends AppCompatActivity
+    implements PairFragment.OnFragmentInteractionListener {
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -31,6 +45,44 @@ public class MainActivity extends AppCompatActivity {
      */
     private SectionsPagerAdapter mSectionsPagerAdapter;
 
+    public static final String TAG= "MainActivity";
+    public static final int START_BLUEOOTH= 2;
+    public static final int END_BLUEOOTH= 3;
+    public static final int DISCOVER_BLUEOOTH= 4;
+
+    private List<String> nearbyDevices= new ArrayList<String>();
+    private String mUsername;
+    private String mDeviceId;
+    private int mPartyId;
+
+    // Create a Bluetooth Adapter
+    BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
+
+    // Create a BroadcastReceiver for ACTION_FOUND
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
+                nearbyDevices.clear();
+                Log.i(TAG, "Discovery Started");
+            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                Log.i(TAG, "Discovery Finished");
+            } else if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                // Get the BluetoothDevice object from the Intent
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                // Add the name and address to an array adapter to show in a ListView
+//                            mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+                nearbyDevices.add(device.getAddress());
+                Log.i(TAG, nearbyDevices.toString());
+
+                Request request= new Request(mUsername, null, mDeviceId, nearbyDevices,
+                        mPartyId);
+                //TODO make http request to send request to server
+                //TODO set party id after request returns
+            }
+        }
+    };
+
     /**
      * The {@link ViewPager} that will host the section contents.
      */
@@ -40,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Log.i(TAG, "oncreate");
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -62,13 +116,19 @@ public class MainActivity extends AppCompatActivity {
 //                      .setAction("Action", null).show();
 //          }
 //      });
-      
+
+        // get bluetooth permissions and set onclicklistener for pair button
+        int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
     }
 
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
+        Log.i(TAG, "create_options_menu");
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
@@ -90,8 +150,6 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
-
-    
   
 
     /**
@@ -108,7 +166,12 @@ public class MainActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            return PlaceholderFragment.newInstance(position + 1);
+            if (position==1) {
+                return PairFragment.newInstance(mUsername, mDeviceId, mPartyId);
+//                return PlaceholderFragment.newInstance(position + 1);
+            } else {
+                return PlaceholderFragment.newInstance(position + 1);
+            }
         }
 
         @Override
@@ -128,6 +191,34 @@ public class MainActivity extends AppCompatActivity {
                     return "SECTION 3";
             }
             return null;
+        }
+    }
+
+    public void startBluetooth() {
+        // Register the BroadcastReceiver
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_FOUND);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
+    }
+
+    public void endBluetooth() {
+        // Unregister the BroadcastReceiver
+        unregisterReceiver(mReceiver);
+    }
+
+    public void onFragmentInteraction(int message) {
+
+        if (message==START_BLUEOOTH) {
+            startBluetooth();
+        } else if (message==END_BLUEOOTH) {
+            endBluetooth();
+        } else if (message==DISCOVER_BLUEOOTH) {
+            Log.i(TAG + "fds", nearbyDevices.toString());
+
+            mAdapter.startDiscovery();
+            //        return true;
         }
     }
 
