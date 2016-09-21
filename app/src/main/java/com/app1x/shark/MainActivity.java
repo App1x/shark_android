@@ -10,7 +10,9 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.util.Pair;
+import android.support.v4.view.PagerAdapter;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
    
@@ -29,28 +31,35 @@ import android.view.ViewGroup;
   
 import android.widget.TextView;
 
+import com.amazonaws.mobile.AWSMobileClient;
+import com.amazonaws.mobile.user.IdentityManager;
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.appindexing.Thing;
+import com.google.android.gms.common.api.GoogleApiClient;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
-    implements PairFragment.OnFragmentInteractionListener {
+        implements PairFragment.OnFragmentInteractionListener {
 
     /**
-     * The {@link android.support.v4.view.PagerAdapter} that will provide
+     * The {@link PagerAdapter} that will provide
      * fragments for each of the sections. We use a
      * {@link FragmentPagerAdapter} derivative, which will keep every
      * loaded fragment in memory. If this becomes too memory intensive, it
      * may be best to switch to a
-     * {@link android.support.v4.app.FragmentStatePagerAdapter}.
+     * {@link FragmentStatePagerAdapter}.
      */
     private SectionsPagerAdapter mSectionsPagerAdapter;
 
-    public static final String TAG= "MainActivity";
-    public static final int START_BLUEOOTH= 2;
-    public static final int END_BLUEOOTH= 3;
-    public static final int DISCOVER_BLUEOOTH= 4;
+    public static final String TAG = "MainActivity";
+    public static final int START_BLUEOOTH = 2;
+    public static final int END_BLUEOOTH = 3;
+    public static final int DISCOVER_BLUEOOTH = 4;
 
-    private List<String> nearbyDevices= new ArrayList<String>();
+    private List<String> nearbyDevices = new ArrayList<String>();
     private String mUsername;
     private String mDeviceId;
     private int mPartyId;
@@ -75,7 +84,7 @@ public class MainActivity extends AppCompatActivity
                 nearbyDevices.add(device.getAddress());
                 Log.i(TAG, nearbyDevices.toString());
 
-                Request request= new Request(mUsername, null, mDeviceId, nearbyDevices,
+                Request request = new Request(mUsername, null, mDeviceId, nearbyDevices,
                         mPartyId);
                 //TODO make http request to send request to server
                 //TODO set party id after request returns
@@ -87,6 +96,11 @@ public class MainActivity extends AppCompatActivity
      * The {@link ViewPager} that will host the section contents.
      */
     private ViewPager mViewPager;
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,6 +136,34 @@ public class MainActivity extends AppCompatActivity
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                 MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+
+        AWSMobileClient.initializeMobileClientIfNecessary(getApplicationContext());
+
+        AWSMobileClient.defaultMobileClient()
+                .getIdentityManager()
+                .getUserID(new IdentityManager.IdentityHandler() {
+
+                    @Override
+                    public void handleIdentityID(String identityId) {
+
+                        // User's identity retreived. You can use the identityId value
+                        // to uniquely identify the user.
+
+                        // ... add code here that uses the identityId ...
+                    }
+
+                    @Override
+                    public void handleError(Exception exception) {
+
+                        // We failed to retrieve the user's identity. Set unknown user identifier
+                        // in text view. Perhaps there was no network access available.
+
+                        // ... add error handling logic here ...
+                    }
+                });
     }
 
 
@@ -150,7 +192,43 @@ public class MainActivity extends AppCompatActivity
 
         return super.onOptionsItemSelected(item);
     }
-  
+
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    public Action getIndexApiAction() {
+        Thing object = new Thing.Builder()
+                .setName("Main Page") // TODO: Define a title for the content shown.
+                // TODO: Make sure this auto-generated URL is correct.
+                .setUrl(Uri.parse("http://[ENTER-YOUR-URL-HERE]"))
+                .build();
+        return new Action.Builder(Action.TYPE_VIEW)
+                .setObject(object)
+                .setActionStatus(Action.STATUS_TYPE_COMPLETED)
+                .build();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        AppIndex.AppIndexApi.start(client, getIndexApiAction());
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        AppIndex.AppIndexApi.end(client, getIndexApiAction());
+        client.disconnect();
+    }
+
 
     /**
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
@@ -166,7 +244,7 @@ public class MainActivity extends AppCompatActivity
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            if (position==1) {
+            if (position == 1) {
                 return PairFragment.newInstance(mUsername, mDeviceId, mPartyId);
 //                return PlaceholderFragment.newInstance(position + 1);
             } else {
@@ -210,11 +288,11 @@ public class MainActivity extends AppCompatActivity
 
     public void onFragmentInteraction(int message) {
 
-        if (message==START_BLUEOOTH) {
+        if (message == START_BLUEOOTH) {
             startBluetooth();
-        } else if (message==END_BLUEOOTH) {
+        } else if (message == END_BLUEOOTH) {
             endBluetooth();
-        } else if (message==DISCOVER_BLUEOOTH) {
+        } else if (message == DISCOVER_BLUEOOTH) {
             Log.i(TAG + "fds", nearbyDevices.toString());
 
             mAdapter.startDiscovery();
@@ -249,7 +327,7 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                Bundle savedInstanceState) {
+                                 Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_main, container, false);
             TextView textView = (TextView) rootView.findViewById(R.id.section_label);
             textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
